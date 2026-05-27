@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -17,7 +16,13 @@
         .header{position:fixed;top:0;left:0;right:0;height:56px;background:rgba(13,13,13,.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:1000}
         .logo{display:flex;align-items:center;gap:8px;cursor:pointer}.logo-box{width:32px;height:32px;background:var(--red);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
         .logo span{font-size:18px;font-weight:800}.logo span em{color:var(--red);font-style:normal}
-        .header-actions{display:flex;gap:8px}
+        .header-actions{display:flex;gap:8px;align-items:center}
+
+        .sync-indicator{font-size:10px;padding:4px 8px;border-radius:4px;font-weight:600;display:flex;align-items:center;gap:4px;cursor:pointer}
+        .sync-ok{background:rgba(34,197,94,.15);color:#22c55e}
+        .sync-off{background:rgba(229,9,20,.15);color:#e50914}
+        .sync-load{background:rgba(234,179,8,.15);color:var(--orange)}
+        .sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 
         .btn{padding:7px 14px;border:none;border-radius:6px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}
         .btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#ff1a25}
@@ -118,6 +123,8 @@
         .stat .val{font-size:22px;font-weight:800}.stat .lbl{font-size:10px;color:var(--text3);margin-top:2px}
         .table-wrap{overflow-x:auto}
 
+        .sync-status-bar{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
         @media(max-width:900px){.player-wrap{grid-template-columns:1fr}}
         @media(max-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}.header{padding:0 12px}.main{padding:14px}}
     </style>
@@ -126,6 +133,7 @@
 <header class="header">
     <div class="logo" onclick="goHome()"><div class="logo-box"><i class="fas fa-play"></i></div><span>Stream<em>Dark</em></span></div>
     <div class="header-actions">
+        <div id="sync-badge" class="sync-indicator sync-load" onclick="syncFromCloud()" title="Clique para sincronizar"><span class="sync-dot"></span> Conectando...</div>
         <button class="btn btn-purple" onclick="openAdminLogin()"><i class="fas fa-shield-halved"></i> Admin</button>
     </div>
 </header>
@@ -162,15 +170,15 @@
         <button class="back-btn" onclick="goHome()"><i class="fas fa-arrow-left"></i> Voltar ao Site</button>
         <div class="admin-head"><h1><i class="fas fa-shield-halved" style="color:var(--purple);margin-right:8px"></i>Painel Admin</h1>
             <div style="display:flex;gap:6px">
-                <button class="btn btn-ghost btn-sm" onclick="exportData()"><i class="fas fa-download"></i> Exportar</button>
-                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('imp-file').click()"><i class="fas fa-upload"></i> Importar</button>
-                <input type="file" id="imp-file" style="display:none" accept=".json" onchange="importData(event)">
+                <button class="btn btn-ghost btn-sm" onclick="syncToCloud()" title="Enviar para nuvem"><i class="fas fa-cloud-arrow-up"></i> Enviar</button>
+                <button class="btn btn-ghost btn-sm" onclick="syncFromCloud()" title="Baixar da nuvem"><i class="fas fa-cloud-arrow-down"></i> Baixar</button>
             </div>
         </div>
         <div class="stats-row" id="admin-stats"></div>
         <div class="a-tabs">
             <button class="a-tab on" onclick="aTab('videos',this)">Vídeos</button>
             <button class="a-tab" onclick="aTab('add-v',this)">+ Adicionar</button>
+            <button class="a-tab" onclick="aTab('cloud',this)">☁️ Nuvem</button>
         </div>
 
         <div class="a-section on" id="sec-videos">
@@ -192,6 +200,22 @@
                     <div class="field"><label>Título</label><input type="text" id="av-title" placeholder="Nome do vídeo"></div>
                     <div class="field"><label>Categoria</label><select id="av-cat"><option value="geral">Geral</option><option value="filmes">Filmes</option><option value="series">Séries</option><option value="clips">Clips</option></select></div>
                     <button class="btn btn-red btn-sm" onclick="addVideoAdmin()"><i class="fas fa-plus"></i> Adicionar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="a-section" id="sec-cloud">
+            <div class="a-card"><div class="a-card-head"><h3><i class="fas fa-cloud" style="color:var(--red);margin-right:8px"></i> Nuvem (Já Configurada)</h3></div>
+                <div style="padding:16px">
+                    <div class="sync-status-bar">
+                        <div style="display:flex;align-items:center;gap:8px"><i class="fas fa-cloud" style="font-size:20px;color:var(--red)"></i><div><div style="font-size:13px;font-weight:700">Bin ID: <span style="font-family:monospace;color:var(--red)">6a173881ddf5aa59f76cfbc2</span></div><div style="font-size:10px;color:var(--text3)">Configurado automaticamente</div></div></div>
+                        <div id="sync-status-badge" class="sync-indicator sync-load"><span class="sync-dot"></span> Conectando...</div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                        <button class="btn btn-red btn-sm" onclick="syncToCloud()"><i class="fas fa-cloud-arrow-up"></i> Enviar Dados</button>
+                        <button class="btn btn-ghost btn-sm" onclick="syncFromCloud()"><i class="fas fa-cloud-arrow-down"></i> Baixar Dados</button>
+                        <button class="btn btn-ghost btn-sm" onclick="exportData()"><i class="fas fa-file-export"></i> Exportar Backup</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -222,14 +246,51 @@
 
 <script>
 const ADMIN_PASS='admin123';
+// CONFIGURAÇÃO DA NUVEM JÁ INCLUÍDA
+const CLOUD_BIN='6a173881ddf5aa59f76cfbc2';
+const CLOUD_KEY='$2a$10$ISDOMV9DYyZR2Z.NtmCMe.4y94QeMrK.L1ycOmt.GfmENetdlfyyC';
+
 let videos=JSON.parse(localStorage.getItem('sd_v')||'[]');
 let favs=JSON.parse(localStorage.getItem('sd_fav')||'[]');
 let curCat='all',userSrc='youtube',adminSrc='youtube',curPlay=null,hls=null,vSearch='';
 
-document.addEventListener('DOMContentLoaded',()=>{render()});
+document.addEventListener('DOMContentLoaded',()=>{render();updateCloudBadge();setTimeout(()=>syncFromCloud(true),1500)});
 function gid(){return'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
 
 function goHome(){document.getElementById('home-view').style.display='';document.getElementById('player-view').style.display='none';document.getElementById('admin-panel').classList.remove('show');killPlayer();curPlay=null}
+
+// ===== NUVEM =====
+function updateCloudBadge(){
+    const badge=document.getElementById('sync-badge');
+    const sBadge=document.getElementById('sync-status-badge');
+    if(badge){badge.className='sync-indicator sync-ok';badge.innerHTML='<span class="sync-dot"></span> Cloud'}
+    if(sBadge){sBadge.className='sync-indicator sync-ok';sBadge.innerHTML='<span class="sync-dot"></span> Conectado'}
+}
+
+async function syncToCloud(){
+    const badge=document.getElementById('sync-badge');
+    if(badge){badge.className='sync-indicator sync-load';badge.innerHTML='<span class="sync-dot"></span> Enviando...'}
+    try{
+        const data={videos,favs,syncedAt:new Date().toISOString()};
+        const res=await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_BIN}`,{
+            method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':CLOUD_KEY},body:JSON.stringify(data)
+        });
+        if(!res.ok)throw new Error(`Erro ${res.status}`);
+        updateCloudBadge();toast('✅ Enviado para nuvem!','ok');
+    }catch(e){toast('Erro ao enviar: '+e.message,'err')}
+}
+
+async function syncFromCloud(silent=false){
+    if(!silent){const b=document.getElementById('sync-badge');if(b){b.className='sync-indicator sync-load';b.innerHTML='<span class="sync-dot"></span> Baixando...'}}
+    try{
+        const res=await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_BIN}/latest`,{headers:{'X-Master-Key':CLOUD_KEY}});
+        if(!res.ok)throw new Error(`Erro ${res.status}`);
+        const json=await res.json();const d=json.record;
+        if(d.videos){videos=d.videos;saveV()}
+        if(d.favs){favs=d.favs;saveFav()}
+        render();if(!silent)toast('✅ Dados baixados da nuvem!','ok');updateCloudBadge();
+    }catch(e){if(!silent)toast('Erro ao baixar: '+e.message,'err')}
+}
 
 function openPlayer(id){
     const v=videos.find(x=>x.id===id);if(!v)return;curPlay=id;
@@ -287,7 +348,7 @@ function addVideoUser(){
     if(src==='youtube'){const m=url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([a-zA-Z0-9_-]{11})/);if(!m)return toast('URL do YouTube inválida','err');embedId=m[1]}
     else if(src==='drive'){const m=url.match(/file\/d\/([a-zA-Z0-9_-]+)/);if(!m)return toast('URL do Drive inválida','err');embedId=m[1]}
     videos.unshift({id:gid(),url,title:title||'Sem título',source:src,embedId,category:cat,addedAt:Date.now()});
-    saveV();render();closeModal('modal-add');document.getElementById('uv-url').value='';document.getElementById('uv-title').value='';toast('Adicionado!','ok')}
+    saveV();render();closeModal('modal-add');document.getElementById('uv-url').value='';document.getElementById('uv-title').value='';toast('Adicionado!','ok');syncToCloud()}
 
 function pickUserSrc(el,s){el.parentElement.querySelectorAll('.src-opt').forEach(x=>x.classList.remove('on'));el.classList.add('on');userSrc=s;document.getElementById('uv-hint').textContent={youtube:'Cole o link do YouTube',drive:'Cole o link do Google Drive',direct:'Cole um link direto (.mp4, .m3u8, .webm)'}[s]}
 
@@ -298,7 +359,7 @@ function addVideoAdmin(){
     if(src==='youtube'){const m=url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([a-zA-Z0-9_-]{11})/);if(!m)return toast('URL inválida','err');embedId=m[1]}
     else if(src==='drive'){const m=url.match(/file\/d\/([a-zA-Z0-9_-]+)/);if(!m)return toast('URL inválida','err');embedId=m[1]}
     videos.unshift({id:gid(),url,title:title||'Sem título',source:src,embedId,category:cat,addedAt:Date.now()});
-    saveV();render();document.getElementById('av-url').value='';document.getElementById('av-title').value='';toast('Adicionado!','ok')}
+    saveV();render();document.getElementById('av-url').value='';document.getElementById('av-title').value='';toast('Adicionado!','ok');syncToCloud()}
 
 function pickSrc(el){el.parentElement.querySelectorAll('.src-opt').forEach(x=>x.classList.remove('on'));el.classList.add('on');adminSrc=el.dataset.s;document.getElementById('av-hint').textContent={youtube:'Cole o link do YouTube',drive:'Cole o link do Google Drive',direct:'Cole um link direto (.mp4, .m3u8, .webm)'}[adminSrc]}
 
@@ -319,13 +380,13 @@ function openAdminLogin(){document.getElementById('admin-login').classList.add('
 function closeAdminLogin(){document.getElementById('admin-login').classList.remove('show')}
 function checkAdmin(){const p=document.getElementById('admin-pass').value;if(p===ADMIN_PASS){closeAdminLogin();document.getElementById('home-view').style.display='none';document.getElementById('player-view').style.display='none';document.getElementById('admin-panel').classList.add('show');renderAdmin()}else{toast('Senha incorreta','err')}}
 
-function delVideo(id){if(!confirm('Excluir?'))return;videos=videos.filter(v=>v.id!==id);favs=favs.filter(f=>f!==id);saveV();saveFav();render();toast('Excluído','inf');if(curPlay===id)goHome()}
+function delVideo(id){if(!confirm('Excluir?'))return;videos=videos.filter(v=>v.id!==id);favs=favs.filter(f=>f!==id);saveV();saveFav();render();toast('Excluído','inf');if(curPlay===id)goHome();syncToCloud()}
 function toggleFav(){if(!curPlay)return;const i=favs.indexOf(curPlay);if(i>-1){favs.splice(i,1);toast('Removido','inf')}else{favs.push(curPlay);toast('Favoritado!','ok')}saveFav();const isFav=favs.includes(curPlay);document.getElementById('fav-icon').className=isFav?'fas fa-heart':'far fa-heart';document.getElementById('fav-icon').style.color=isFav?'var(--red)':'';document.getElementById('fav-text').textContent=isFav?'Favoritado':'Favoritar'}
 function copyUrl(){const v=videos.find(x=>x.id===curPlay);if(v)navigator.clipboard.writeText(v.url).then(()=>toast('Copiado!','ok'))}
 function copyVurl(id){const v=videos.find(x=>x.id===id);if(v)navigator.clipboard.writeText(v.url).then(()=>toast('URL copiada!','ok'))}
 
 function exportData(){const d={videos,favs,date:new Date().toISOString()};const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));a.download=`streamdark-${Date.now()}.json`;a.click();toast('Exportado!','ok')}
-function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.videos){videos=d.videos;saveV()}if(d.favs){favs=d.favs;saveFav()}render();toast('Importado!','ok')}catch{toast('Arquivo inválido','err')}};r.readAsText(f);e.target.value=''}
+function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.videos){videos=d.videos;saveV()}if(d.favs){favs=d.favs;saveFav()}render();toast('Importado!','ok');syncToCloud()}catch{toast('Arquivo inválido','err')}};r.readAsText(f);e.target.value=''}
 
 function closeModal(id){document.getElementById(id).classList.remove('show')}
 function saveV(){localStorage.setItem('sd_v',JSON.stringify(videos))}
@@ -337,4 +398,3 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal('modal-a
 </script>
 </body>
 </html>
-```
